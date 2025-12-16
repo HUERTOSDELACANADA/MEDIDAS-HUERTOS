@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Upload, X, Trash2, Save, Image as ImageIcon, AlertTriangle, CheckCircle, Download, UploadCloud, Code, Copy, FileJson, Loader2 } from 'lucide-react';
+import { Lock, Upload, X, Trash2, Save, Image as ImageIcon, AlertTriangle, CheckCircle, Download, UploadCloud, Code, Copy, FileJson, Loader2, FileCode } from 'lucide-react';
 import { STORAGE_KEYS, saveImageToStorage, getImageFromStorage, clearImageFromStorage } from '../utils/storageUtils';
 import { DEFAULT_FLOOR_PLANS } from '../constants';
 import { processImageForWeb } from '../utils/imageProcessor';
@@ -193,6 +193,19 @@ export const DEFAULT_FLOOR_PLANS = {
       setTimeout(() => setCopySuccess(false), 2000);
   };
 
+  const handleDownloadCode = () => {
+      const code = generateProductionCode();
+      const blob = new Blob([code], { type: 'text/typescript' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'updated_constants.ts';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -340,19 +353,25 @@ export const DEFAULT_FLOOR_PLANS = {
                               <div className="bg-purple-100 p-2 rounded-lg text-purple-600"><Code className="h-5 w-5" /></div>
                               <div>
                                   <h4 className="font-bold text-gray-900">Integrar en Código</h4>
-                                  <p className="text-xs text-gray-500">Genera código para <code>constants.ts</code>.</p>
+                                  <p className="text-xs text-gray-500">Genera el archivo <code>constants.ts</code> actualizado.</p>
                               </div>
                           </div>
                           
                           {showCodeTool ? (
                               <div className="mt-2 animate-fadeIn">
                                   <p className="text-[10px] text-gray-500 mb-2 leading-tight">
-                                      Copia esto y reemplaza <code>DEFAULT_FLOOR_PLANS</code> en tu archivo de constantes para hacer los cambios permanentes para todos los usuarios.
+                                      Elige una opción para actualizar tu código fuente:
                                   </p>
-                                  <button onClick={copyToClipboard} className={`w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${copySuccess ? 'bg-green-500 text-white' : 'bg-gray-900 text-white hover:bg-black'}`}>
-                                      {copySuccess ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                                      {copySuccess ? '¡Copiado!' : 'Copiar al Portapapeles'}
-                                  </button>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <button onClick={copyToClipboard} className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${copySuccess ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                                        {copySuccess ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                                        {copySuccess ? '¡Copiado!' : 'Copiar'}
+                                    </button>
+                                    <button onClick={handleDownloadCode} className="py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all bg-gray-900 text-white hover:bg-black">
+                                        <FileCode className="h-3 w-3" />
+                                        Descargar
+                                    </button>
+                                  </div>
                               </div>
                           ) : (
                             <button onClick={() => setShowCodeTool(true)} className="w-full mt-4 bg-purple-50 text-purple-700 border border-purple-100 hover:bg-purple-100 py-2 rounded-lg text-xs font-bold transition-colors">
