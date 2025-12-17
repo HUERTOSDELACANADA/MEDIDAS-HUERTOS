@@ -5,24 +5,25 @@ import { Home, Maximize, ArrowRight, Sun, Tag, Scaling } from 'lucide-react';
 interface HouseCardProps {
   house: House;
   isSelected: boolean;
+  includeIva: boolean;
   onClick: () => void;
 }
 
-const HouseCard: React.FC<HouseCardProps> = ({ house, isSelected, onClick }) => {
+const HouseCard: React.FC<HouseCardProps> = ({ house, isSelected, includeIva, onClick }) => {
   
-  // Calculate Price per Square Meter
+  const finalPrice = React.useMemo(() => {
+    return includeIva ? house.price * 1.10 : house.price;
+  }, [house.price, includeIva]);
+
+  const formattedPrice = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(finalPrice);
+
+  // Calculate Price per Square Meter based on the currently displayed price (with or without IVA)
   const pricePerSqM = React.useMemo(() => {
-    if (!house.price) return null;
+    if (!house.totalConstructedArea || house.totalConstructedArea === 0) return null;
     
-    // Parse the price string (e.g., "250.000 €") to a number
-    // Remove dots (thousands separator) and non-numeric characters
-    const priceNumeric = parseInt(house.price.replace(/\./g, '').replace(/[^0-9]/g, ''), 10);
-    
-    if (isNaN(priceNumeric) || !house.totalConstructedArea || house.totalConstructedArea === 0) return null;
-    
-    const value = priceNumeric / house.totalConstructedArea;
+    const value = finalPrice / house.totalConstructedArea;
     return value.toLocaleString('es-ES', { maximumFractionDigits: 0 });
-  }, [house.price, house.totalConstructedArea]);
+  }, [finalPrice, house.totalConstructedArea]);
 
   return (
     <div className={`relative group rounded-xl transition-all duration-300 border ${
@@ -67,17 +68,20 @@ const HouseCard: React.FC<HouseCardProps> = ({ house, isSelected, onClick }) => 
           {pricePerSqM && (
              <div className={`flex items-center text-[10px] ${isSelected ? 'opacity-90' : 'opacity-60'}`}>
                <Scaling className="h-3 w-3 mr-1" />
-               <span>{pricePerSqM} €/m² constr.</span>
+               <span>{pricePerSqM} €/m² {includeIva ? 'c/IVA' : 's/IVA'}</span>
              </div>
           )}
 
           {/* Total Price */}
-          {house.price && (
-               <div className={`flex items-center text-[10px] font-bold mt-1 ${isSelected ? 'opacity-100' : 'text-[#39b54a]'}`}>
+          <div className="flex flex-col items-start mt-1">
+             <div className={`flex items-center text-[10px] font-bold ${isSelected ? 'opacity-100' : 'text-[#39b54a]'}`}>
                 <Tag className="h-3 w-3 mr-1" />
-                <span>{house.price}</span>
-              </div>
-          )}
+                <span>{formattedPrice}</span>
+             </div>
+             <span className={`text-[9px] ${isSelected ? 'text-green-100' : 'text-gray-400'}`}>
+                {includeIva ? 'IVA incluido' : '+ IVA (10%)'}
+             </span>
+          </div>
         </div>
 
         <div className={`flex items-center justify-between text-[10px] font-bold uppercase tracking-wider ${isSelected ? 'text-white' : 'text-[#39b54a]'}`}>

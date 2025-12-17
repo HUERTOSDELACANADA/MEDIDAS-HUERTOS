@@ -1,99 +1,67 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { FloorName } from './types';
+import { Home, Sun, Layers, Calculator, CheckSquare, Square, BrickWall, Ruler, ArrowRight } from 'lucide-react';
+
+// Hooks
+import { useHouseData } from './hooks/useHouseData';
+
+// Utilities
+import { generateHousePDF } from './utils/pdfGenerator';
+
+// Components (Modular Architecture)
 import Header from './components/Header';
 import HeroSection from './components/HeroSection';
 import Footer from './components/Footer';
-import HouseCard from './components/HouseCard';
-import FloorDetail from './components/FloorDetail';
 import SitePlan from './components/SitePlan';
 import AdminPanel from './components/AdminPanel';
 import ImageViewer from './components/ImageViewer';
+import FloorDetail from './components/FloorDetail';
 import RoomList from './components/RoomList';
-import { HOUSES, DEFAULT_FLOOR_PLANS } from './constants';
-import { House, FloorName } from './types';
-import { Home, Calendar, CheckCircle, FileDown, Sun, Layers } from 'lucide-react';
-import { jsPDF } from "jspdf";
-import autoTable from 'jspdf-autotable';
-import { STORAGE_KEYS, getImageFromStorage } from './utils/storageUtils';
+import PriceToggle from './components/PriceToggle';
+import HouseGrid from './components/HouseGrid';
+import ContactSection from './components/ContactSection';
 
 const App: React.FC = () => {
-  const [houses, setHouses] = useState<House[]>(HOUSES);
-  const [selectedHouseId, setSelectedHouseId] = useState<string>("V3"); 
-  const [selectedHouse, setSelectedHouse] = useState<House>(HOUSES.find(h => h.id === "V3")!);
+  // Logic extracted to custom hook
+  const { houses, selectedHouse, selectedHouseId, setSelectedHouseId } = useHouseData();
+
+  // Local UI State
   const [activeFloorName, setActiveFloorName] = useState<FloorName>(FloorName.BAJA);
   const [isZooming, setIsZooming] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [includeIva, setIncludeIva] = useState(false);
   
-  // New States for Expanded Plan View
+  // Expanded Plan View State
   const [isPlanExpanded, setIsPlanExpanded] = useState(false);
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
+  
+  // GLOBAL FLOOR PANEL STATE
+  const [showConstructedGlobal, setShowConstructedGlobal] = useState(false);
+  const [checkedFloors, setCheckedFloors] = useState<string[]>([]);
 
   const detailsRef = useRef<HTMLDivElement>(null);
 
   // Helper to get active floor object
   const activeFloor = selectedHouse.floors.find(f => f.name === activeFloorName) || selectedHouse.floors[0];
 
-  // Function to refresh house images from storage (Async now)
-  const refreshHouseImages = async () => {
-    try {
-        const sotanoImg = (await getImageFromStorage(STORAGE_KEYS.SOTANO)) || DEFAULT_FLOOR_PLANS.SOTANO;
-        const bajaImg = (await getImageFromStorage(STORAGE_KEYS.BAJA)) || DEFAULT_FLOOR_PLANS.BAJA;
-        const primeraImg = (await getImageFromStorage(STORAGE_KEYS.PRIMERA)) || DEFAULT_FLOOR_PLANS.PRIMERA;
-        const cubiertaImg = (await getImageFromStorage(STORAGE_KEYS.CUBIERTA)) || DEFAULT_FLOOR_PLANS.CUBIERTA;
-
-        const updatedHouses = HOUSES.map(house => ({
-        ...house,
-        floors: house.floors.map(floor => {
-            let newImg = floor.imagePlaceholder;
-            if (floor.name === FloorName.SOTANO) newImg = sotanoImg;
-            if (floor.name === FloorName.BAJA) newImg = bajaImg;
-            if (floor.name === FloorName.PRIMERA) newImg = primeraImg;
-            if (floor.name === FloorName.CUBIERTA) newImg = cubiertaImg;
-            
-            return { ...floor, imagePlaceholder: newImg };
-        })
-        }));
-
-        setHouses(updatedHouses);
-        
-        // Also update selected house reference if needed
-        const currentSelected = updatedHouses.find(h => h.id === selectedHouseId);
-        if (currentSelected) setSelectedHouse(currentSelected);
-    } catch (error) {
-        console.error("Error refreshing images:", error);
-    }
+  // Price formatting helper
+  const formatPrice = (price: number) => {
+    const finalPrice = includeIva ? price * 1.10 : price;
+    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(finalPrice);
   };
 
-  useEffect(() => {
-    refreshHouseImages();
-    
-    // Listen for storage updates (from Admin Panel)
-    const handleStorageUpdate = () => refreshHouseImages();
-    window.addEventListener('storage-update', handleStorageUpdate);
-    
-    return () => {
-      window.removeEventListener('storage-update', handleStorageUpdate);
-    };
-  }, [selectedHouseId]); // Re-run if selected ID changes to ensure current house is updated
-
-  useEffect(() => {
-    const house = houses.find(h => h.id === selectedHouseId);
-    if (house) {
-      setSelectedHouse(house);
-    }
-  }, [selectedHouseId, houses]);
-
-  // Reset floor selections when house changes
+  // Reset selections when house changes
   useEffect(() => {
     setSelectedRooms([]);
     setIsPlanExpanded(false);
+    setCheckedFloors([]); // Reset calculator selection
+    setShowConstructedGlobal(false);
   }, [selectedHouseId]);
 
   const handleHouseSelection = (id: string) => {
     setSelectedHouseId(id);
-    
     setIsZooming(true);
-    
     setTimeout(() => {
         detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         setTimeout(() => setIsZooming(false), 1000);
@@ -108,154 +76,44 @@ const App: React.FC = () => {
     );
   };
 
-  const generatePDF = () => {
+  const handleDownloadPDF = () => {
     setIsGeneratingPdf(true);
-    const doc = new jsPDF();
-    const primaryColor = "#39b54a";
-    const darkColor = "#1a1a1a";
+    setTimeout(() => {
+        generateHousePDF(selectedHouse, includeIva);
+        setIsGeneratingPdf(false);
+    }, 100);
+  };
 
-    // Header
-    doc.setFillColor(darkColor);
-    doc.rect(0, 0, 210, 30, 'F');
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.text("RESIDENCIAL", 14, 12);
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(primaryColor);
-    doc.text("HUERTOS", 14, 19);
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text("DE LA CAÑADA", 42, 19);
+  // --- CALCULATOR LOGIC ---
+  const toggleFloorCheck = (floorName: string) => {
+    setCheckedFloors(prev => 
+      prev.includes(floorName)
+        ? prev.filter(f => f !== floorName)
+        : [...prev, floorName]
+    );
+  };
 
-    // Title
-    doc.setTextColor(darkColor);
-    doc.setFontSize(22);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Informe de Superficies`, 14, 45);
-    doc.setTextColor(primaryColor);
-    doc.text(selectedHouse.name, 14, 55);
+  const calculateTotalChecked = () => {
+    let interior = 0;
+    let exterior = 0;
 
-    // Main Info Box
-    doc.setDrawColor(200, 200, 200);
-    doc.setFillColor(250, 250, 250);
-    doc.roundedRect(14, 65, 182, 35, 3, 3, 'FD');
-
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    
-    // Column 1
-    doc.text("Identificador:", 20, 75);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(darkColor);
-    doc.text(selectedHouse.id, 20, 80);
-    
-    // Column 2
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text("Tipología:", 60, 75);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(darkColor);
-    doc.text(selectedHouse.type, 60, 80);
-
-    // Column 3
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text("Orientación:", 100, 75);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(darkColor);
-    doc.text(selectedHouse.orientation || "-", 100, 80);
-
-    // Column 4
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text("Precio:", 140, 75);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(primaryColor);
-    doc.setFontSize(12);
-    doc.text(selectedHouse.price || "Consultar", 140, 80);
-
-    // Row 2 Info
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text("Parcela:", 20, 90);
-    doc.setTextColor(darkColor);
-    doc.text(`${selectedHouse.parcelArea} m²`, 35, 90);
-    
-    doc.setTextColor(100, 100, 100);
-    doc.text("Sup. Construida:", 100, 90);
-    doc.setTextColor(darkColor);
-    doc.text(`${selectedHouse.totalConstructedArea} m²`, 128, 90);
-
-    let finalY = 110;
-
-    // Iterate Floors
-    selectedHouse.floors.forEach((floor) => {
-        // Floor Header
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(primaryColor);
-        doc.text(floor.name.toUpperCase(), 14, finalY);
-        doc.line(14, finalY + 2, 196, finalY + 2); // Underline
-
-        // Data for Table
-        const tableData = floor.rooms.map(room => [room.name, `${room.area.toFixed(2)} m²`]);
-        
-        // Add Summary Row
-        if(floor.outdoorArea && floor.outdoorArea > 0) {
-             tableData.push(["TOTAL ÚTIL INTERIOR", `${floor.totalUsefulArea.toFixed(2)} m²`]);
-             tableData.push(["ZONAS EXTERIORES", `${floor.outdoorArea.toFixed(2)} m²`]);
+    selectedHouse.floors.forEach(f => {
+      if (checkedFloors.includes(f.name)) {
+        // Interior
+        if (showConstructedGlobal) {
+          interior += f.totalConstructedArea || (f.totalUsefulArea * 1.15);
         } else {
-             tableData.push(["TOTAL ÚTIL", `${floor.totalUsefulArea.toFixed(2)} m²`]);
+          interior += f.totalUsefulArea;
         }
-
-        autoTable(doc, {
-            startY: finalY + 5,
-            head: [['Estancia', 'Superficie']],
-            body: tableData,
-            theme: 'grid',
-            headStyles: { fillColor: [57, 181, 74], textColor: 255, fontStyle: 'bold' },
-            columnStyles: {
-                0: { cellWidth: 'auto' },
-                1: { cellWidth: 40, halign: 'right', fontStyle: 'bold' },
-            },
-            styles: { fontSize: 9, cellPadding: 2 },
-            footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' },
-            didParseCell: function(data) {
-                // Style Summary Rows differently
-                if (data.row.raw[0].toString().includes("TOTAL") || data.row.raw[0].toString().includes("ZONAS EXTERIORES")) {
-                    data.cell.styles.fontStyle = 'bold';
-                    data.cell.styles.textColor = [0, 0, 0];
-                    data.cell.styles.fillColor = [245, 245, 245];
-                }
-            }
-        });
-
-        // @ts-ignore
-        finalY = doc.lastAutoTable.finalY + 15;
-        
-        // Check for page break
-        if (finalY > 250) {
-            doc.addPage();
-            finalY = 20;
-        }
+        // Exterior
+        exterior += f.outdoorArea || 0;
+      }
     });
 
-    // Disclaimer
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.setFont("helvetica", "normal");
-    const disclaimer = "Nota: El presente documento tiene carácter informativo. Las superficies indicadas son útiles y pueden sufrir ligeras variaciones por exigencias técnicas durante la ejecución de la obra. El mobiliario es meramente decorativo.";
-    const splitDisclaimer = doc.splitTextToSize(disclaimer, 180);
-    doc.text(splitDisclaimer, 14, 280);
-
-    // Save
-    doc.save(`Informe_${selectedHouse.id}_HuertosDeLaCanada.pdf`);
-    setIsGeneratingPdf(false);
+    return { interior, exterior, total: interior + exterior };
   };
+
+  const totals = calculateTotalChecked();
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 pb-24">
@@ -265,41 +123,30 @@ const App: React.FC = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 mt-6">
         
-        {/* Site Plan - Visual Selector */}
         <SitePlan 
           houses={houses} 
           selectedHouseId={selectedHouseId} 
           onSelectHouse={handleHouseSelection} 
         />
 
-        {/* Secondary Grid Selector */}
-        <div className="mb-16">
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 text-center border-b border-gray-100 pb-2 mx-auto max-w-xs">
-                Selección Rápida
-            </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3">
-             {houses.map((house) => (
-               <HouseCard 
-                 key={house.id} 
-                 house={house} 
-                 isSelected={selectedHouseId === house.id}
-                 onClick={() => handleHouseSelection(house.id)}
-               />
-             ))}
-           </div>
-        </div>
+        <PriceToggle 
+          includeIva={includeIva} 
+          setIncludeIva={setIncludeIva} 
+        />
+
+        <HouseGrid 
+          houses={houses}
+          selectedHouseId={selectedHouseId}
+          includeIva={includeIva}
+          onSelectHouse={handleHouseSelection}
+        />
 
         {/* Details Section - Applied "Lupa" Zoom Effect */}
         <div ref={detailsRef} className={`grid grid-cols-1 lg:grid-cols-12 gap-12 transition-all duration-700 transform ${isZooming ? 'scale-[1.05] -translate-y-4' : 'scale-100 translate-y-0'}`}>
           
-          {/* 
-            LEFT COLUMN LOGIC: 
-            - Standard Mode: Shows House Summary and Floor Navigation.
-            - Expanded Mode: Shows Room List (moves from inside detail to here).
-          */}
+          {/* LEFT COLUMN: INFO & FLOOR SELECTOR PANEL */}
           <div className="lg:col-span-4 space-y-8 order-2 lg:order-1">
             {isPlanExpanded ? (
-               // EXPANDED MODE LEFT COLUMN: ROOM LIST
                <div className="h-full sticky top-24 animate-fadeIn">
                    <RoomList 
                       rooms={activeFloor.rooms}
@@ -308,19 +155,40 @@ const App: React.FC = () => {
                       onClearSelection={() => setSelectedRooms([])}
                       totalUsefulArea={activeFloor.totalUsefulArea}
                       outdoorArea={activeFloor.outdoorArea}
+                      showConstructed={showConstructedGlobal}
                    />
                </div>
             ) : (
-               // STANDARD MODE LEFT COLUMN: SUMMARY & NAV
-               <div className={`bg-white rounded-3xl p-8 border border-gray-200 shadow-xl transition-all duration-500 sticky top-24 ${isZooming ? 'shadow-2xl shadow-[#39b54a]/20 border-[#39b54a]/30 ring-2 ring-[#39b54a]/10' : 'shadow-gray-100/50'}`}>
+               <div className={`bg-white rounded-3xl p-6 border border-gray-200 shadow-xl transition-all duration-500 sticky top-24 ${isZooming ? 'shadow-2xl shadow-[#39b54a]/20 border-[#39b54a]/30 ring-2 ring-[#39b54a]/10' : 'shadow-gray-100/50'}`}>
+                
+                {/* House Info Header */}
                 <div className="border-b border-gray-100 pb-6 mb-6">
                     <div className="flex justify-between items-start mb-4">
-                        <span className="inline-block px-3 py-1 bg-[#39b54a]/10 text-[#39b54a] text-xs font-bold rounded-full tracking-wide">
-                            {selectedHouse.id}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="inline-block px-3 py-1 bg-[#39b54a]/10 text-[#39b54a] text-xs font-bold rounded-full tracking-wide">
+                                {selectedHouse.id}
+                            </span>
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded-full border border-gray-100 uppercase tracking-wide">
+                                <Sun className="w-3 h-3 text-amber-400" />
+                                {selectedHouse.orientation}
+                            </span>
+                        </div>
+
                         {selectedHouse.price && (
-                            <div className={`text-xl font-black text-gray-900 bg-gray-50 px-3 py-1 rounded-lg transition-colors duration-500 ${isZooming ? 'bg-[#39b54a] text-white' : ''}`}>
-                                {selectedHouse.price}
+                            <div className="flex flex-col items-end">
+                                <div className={`text-xl font-black text-gray-900 bg-gray-50 px-3 py-1 rounded-lg transition-colors duration-500 ${isZooming ? 'bg-[#39b54a] text-white' : ''}`}>
+                                    {formatPrice(selectedHouse.price)}
+                                </div>
+                                <button 
+                                  onClick={() => setIncludeIva(!includeIva)}
+                                  className={`text-[10px] font-bold mt-1 px-2 py-0.5 rounded cursor-pointer transition-all border ${
+                                    includeIva 
+                                        ? 'bg-[#39b54a]/10 text-[#39b54a] border-[#39b54a]/20' 
+                                        : 'bg-gray-50 text-gray-400 border-gray-200 hover:border-gray-300'
+                                  }`}
+                                >
+                                    {includeIva ? 'IVA (10%) Incluido' : '+ IVA (10%) No incluido'}
+                                </button>
                             </div>
                         )}
                     </div>
@@ -329,55 +197,121 @@ const App: React.FC = () => {
                         <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded flex items-center gap-1">
                             <Home className="w-3 h-3" /> {selectedHouse.type}
                         </span>
-                        <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded flex items-center gap-1">
-                            <Sun className="w-3 h-3" /> {selectedHouse.orientation}
-                        </span>
-                    </div>
-                </div>
-                
-                <div className="space-y-4 mb-8">
-                    <div className="flex justify-between items-center py-2 border-b border-gray-50">
-                    <span className="text-gray-500 text-sm">Parcela Total</span>
-                    <span className="font-bold text-xl">{selectedHouse.parcelArea} <span className="text-sm font-normal text-gray-400">m²</span></span>
-                    </div>
-                    <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-500 text-sm">Sup. Construida</span>
-                    <span className="font-bold text-xl">{selectedHouse.totalConstructedArea} <span className="text-sm font-normal text-gray-400">m²</span></span>
                     </div>
                 </div>
 
-                {/* DESKTOP FLOOR SELECTOR: Hidden on mobile */}
-                <div className="hidden lg:block space-y-3">
-                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Plantas</h4>
-                    {selectedHouse.floors.map((floor) => (
-                    <button
-                        key={floor.name}
-                        onClick={() => setActiveFloorName(floor.name)}
-                        className={`w-full flex items-center justify-between p-4 rounded-xl transition-all border ${
-                        activeFloorName === floor.name
-                            ? 'bg-gray-900 text-white border-gray-900 shadow-lg scale-[1.02]'
-                            : 'bg-white text-gray-600 border-gray-100 hover:border-[#39b54a] hover:text-[#39b54a]'
-                        }`}
-                    >
-                        <span className="font-medium">{floor.name}</span>
-                        <span className={`text-sm ${activeFloorName === floor.name ? 'text-gray-300' : 'text-gray-400'}`}>
-                        {floor.totalUsefulArea} m²
-                        </span>
-                    </button>
-                    ))}
+                {/* --- FLOOR SELECTOR PANEL & CALCULATOR --- */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs font-bold text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                            <Layers className="h-4 w-4 text-[#39b54a]" /> Plantas
+                        </h4>
+                        
+                        {/* GLOBAL TOGGLE: Useful vs Constructed */}
+                        <button 
+                            onClick={() => setShowConstructedGlobal(!showConstructedGlobal)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all border ${
+                                showConstructedGlobal 
+                                ? 'bg-gray-900 text-white border-gray-900' 
+                                : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
+                            }`}
+                        >
+                            {showConstructedGlobal ? <BrickWall className="h-3 w-3" /> : <Ruler className="h-3 w-3" />}
+                            {showConstructedGlobal ? 'Construidos' : 'Útiles'}
+                        </button>
+                    </div>
+
+                    <div className="space-y-2">
+                        {selectedHouse.floors.map((floor) => {
+                            const isChecked = checkedFloors.includes(floor.name);
+                            const isActive = activeFloorName === floor.name;
+                            const areaToShow = showConstructedGlobal 
+                                ? (floor.totalConstructedArea || floor.totalUsefulArea * 1.15)
+                                : floor.totalUsefulArea;
+
+                            return (
+                                <div key={floor.name} className={`flex items-center gap-2 rounded-xl border p-1 pr-3 transition-all ${isActive ? 'border-[#39b54a] bg-[#39b54a]/5' : 'border-gray-100 bg-white hover:border-gray-300'}`}>
+                                    {/* Checkbox for Calculator */}
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); toggleFloorCheck(floor.name); }}
+                                        className="p-2 text-gray-400 hover:text-[#39b54a] transition-colors"
+                                        title="Añadir a la suma total"
+                                    >
+                                        {isChecked 
+                                            ? <CheckSquare className="h-5 w-5 text-[#39b54a]" /> 
+                                            : <Square className="h-5 w-5" />}
+                                    </button>
+
+                                    {/* Main Selection Button */}
+                                    <button
+                                        onClick={() => { setActiveFloorName(floor.name); }}
+                                        className="flex-1 flex items-center justify-between text-left"
+                                    >
+                                        <div className="flex flex-col">
+                                            <span className={`text-sm font-bold ${isActive ? 'text-[#39b54a]' : 'text-gray-700'}`}>
+                                                {floor.name}
+                                            </span>
+                                            {/* Outdoor Area Small Label */}
+                                            {floor.outdoorArea && floor.outdoorArea > 0 ? (
+                                                <span className="text-[10px] text-gray-400 font-medium">
+                                                    Ext: {floor.outdoorArea} m²
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] text-gray-300 italic">Interior</span>
+                                            )}
+                                        </div>
+                                        
+                                        <div className="flex flex-col items-end">
+                                            <span className={`text-sm font-bold ${isActive ? 'text-[#39b54a]' : 'text-gray-900'}`}>
+                                                {areaToShow.toFixed(2)} m²
+                                            </span>
+                                            {showConstructedGlobal && <span className="text-[8px] uppercase text-gray-400">Const.</span>}
+                                        </div>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* SUM CALCULATOR RESULT */}
+                    {checkedFloors.length > 0 && (
+                        <div className="mt-4 bg-gray-900 rounded-xl p-4 text-white animate-fadeIn shadow-lg">
+                            <div className="flex items-center gap-2 mb-3 border-b border-gray-700 pb-2">
+                                <Calculator className="h-4 w-4 text-[#39b54a]" />
+                                <span className="text-xs font-bold uppercase tracking-widest">Calculadora Total</span>
+                            </div>
+                            
+                            <div className="space-y-1">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-400">{showConstructedGlobal ? 'Interior (Const.)' : 'Interior (Útil)'}</span>
+                                    <span className="font-mono font-bold">{totals.interior.toFixed(2)} m²</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-400">Exterior</span>
+                                    <span className="font-mono font-bold">{totals.exterior.toFixed(2)} m²</span>
+                                </div>
+                                <div className="flex justify-between text-base font-black pt-2 border-t border-gray-700 mt-2 text-[#39b54a]">
+                                    <span>TOTAL</span>
+                                    <span>{totals.total.toFixed(2)} m²</span>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setCheckedFloors([])}
+                                className="w-full text-center text-[10px] text-gray-500 hover:text-white mt-3 transition-colors"
+                            >
+                                Limpiar selección
+                            </button>
+                        </div>
+                    )}
                 </div>
+
                </div>
             )}
           </div>
 
-          {/* 
-            RIGHT COLUMN LOGIC:
-            - Standard Mode: Detail Card (Small Image + Room List).
-            - Expanded Mode: Large Embedded Image Viewer.
-          */}
+          {/* RIGHT COLUMN: DETAIL VIEW */}
           <div className="lg:col-span-8 order-1 lg:order-2">
             {isPlanExpanded ? (
-                // EXPANDED MODE RIGHT COLUMN: EMBEDDED VIEWER
                 <div className="h-full">
                     <ImageViewer 
                         isOpen={true}
@@ -388,7 +322,6 @@ const App: React.FC = () => {
                     />
                 </div>
             ) : (
-                // STANDARD MODE RIGHT COLUMN: FLOOR DETAIL CARD
                 <>
                 {selectedHouse.floors.map((floor) => (
                     <div key={floor.name} className={activeFloorName === floor.name ? 'block animate-fadeIn' : 'hidden'}>
@@ -398,70 +331,74 @@ const App: React.FC = () => {
                            onToggleRoom={toggleRoomSelection}
                            onClearSelection={() => setSelectedRooms([])}
                            onOpenViewer={() => setIsPlanExpanded(true)}
+                           showConstructed={showConstructedGlobal}
                         />
                     </div>
                 ))}
 
-                {/* MOBILE FLOOR SELECTOR: Visible only on mobile, below the room list details */}
+                {/* MOBILE FLOOR SELECTOR (Mirrors Desktop Functionality) */}
                 <div className="block lg:hidden mt-6 bg-white p-6 rounded-3xl border border-gray-200 shadow-lg">
-                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <Layers className="h-4 w-4" /> Cambiar Planta
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                        {selectedHouse.floors.map((floor) => (
-                        <button
-                            key={floor.name}
-                            onClick={() => {
-                                setActiveFloorName(floor.name);
-                                // Scroll slightly to bring image into view if needed
-                                detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }}
-                            className={`flex flex-col items-center justify-center p-3 rounded-xl transition-all border text-center ${
-                            activeFloorName === floor.name
-                                ? 'bg-gray-900 text-white border-gray-900 shadow-md'
-                                : 'bg-gray-50 text-gray-600 border-gray-100 hover:border-[#39b54a]'
+                    <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <Layers className="h-4 w-4" /> Cambiar Planta
+                        </h4>
+                         {/* GLOBAL TOGGLE MOBILE */}
+                         <button 
+                            onClick={() => setShowConstructedGlobal(!showConstructedGlobal)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all border ${
+                                showConstructedGlobal 
+                                ? 'bg-gray-900 text-white border-gray-900' 
+                                : 'bg-gray-50 text-gray-500 border-gray-200'
                             }`}
                         >
-                            <span className="font-bold text-xs leading-tight mb-1">{floor.name}</span>
-                            <span className={`text-[10px] ${activeFloorName === floor.name ? 'text-gray-300' : 'text-gray-400'}`}>
-                            {floor.totalUsefulArea} m²
-                            </span>
+                            {showConstructedGlobal ? 'Const.' : 'Útil'}
                         </button>
-                        ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3">
+                        {selectedHouse.floors.map((floor) => {
+                             const isChecked = checkedFloors.includes(floor.name);
+                             const isActive = activeFloorName === floor.name;
+                             const areaToShow = showConstructedGlobal 
+                                ? (floor.totalConstructedArea || floor.totalUsefulArea * 1.15)
+                                : floor.totalUsefulArea;
+
+                             return (
+                                <div key={floor.name} className={`flex items-center p-2 rounded-xl border transition-all ${isActive ? 'border-gray-900 ring-1 ring-gray-900 bg-gray-50' : 'border-gray-100'}`}>
+                                     <button 
+                                        onClick={(e) => { e.stopPropagation(); toggleFloorCheck(floor.name); }}
+                                        className="p-2 mr-2 text-gray-300 hover:text-[#39b54a]"
+                                    >
+                                        {isChecked 
+                                            ? <CheckSquare className="h-5 w-5 text-[#39b54a]" /> 
+                                            : <Square className="h-5 w-5" />}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setActiveFloorName(floor.name);
+                                            detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }}
+                                        className="flex-1 flex justify-between items-center"
+                                    >
+                                        <div className="text-left">
+                                            <span className="font-bold text-xs block text-gray-800">{floor.name}</span>
+                                            {floor.outdoorArea && floor.outdoorArea > 0 && (
+                                                <span className="text-[10px] text-gray-400">Ext: {floor.outdoorArea} m²</span>
+                                            )}
+                                        </div>
+                                        <span className="text-[10px] font-bold text-gray-500">{areaToShow.toFixed(2)} m²</span>
+                                    </button>
+                                </div>
+                             )
+                        })}
                     </div>
                 </div>
                 
-                {/* Call to Action */}
-                <div className="mt-8 lg:mt-12 p-10 bg-gray-50 rounded-3xl border border-gray-100 text-center">
-                    <h3 className="text-2xl font-bold mb-4 text-gray-900">¿Te interesa {selectedHouse.name}?</h3>
-                    <p className="text-gray-500 mb-8 max-w-lg mx-auto">
-                        Agenda una visita o descarga el informe detallado con todas las superficies.
-                    </p>
-                    <div className="flex flex-col sm:flex-row justify-center gap-4 flex-wrap">
-                        <button 
-                        onClick={() => window.open('https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1jNMHWQFzVEtD5RqjuhLODPF0zLfefl929jYNhcSSNqrRdZUbGCBMPyxz6J0u-NRe8bKNk8LuY', '_blank')}
-                        className="bg-[#39b54a] hover:bg-[#2ea03f] text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg shadow-[#39b54a]/30 flex items-center justify-center gap-2"
-                        >
-                        <Calendar className="h-5 w-5" /> Agendar una Cita
-                        </button>
-
-                        <button 
-                        onClick={() => window.open('https://forms.gle/LfafX6MM6cPwZN6CA', '_blank')}
-                        className="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg shadow-gray-900/20 flex items-center justify-center gap-2"
-                        >
-                        <CheckCircle className="h-5 w-5" /> Quiero Reservar
-                        </button>
-                        
-                        <button 
-                        onClick={generatePDF}
-                        disabled={isGeneratingPdf}
-                        className="bg-white border border-gray-200 hover:border-gray-400 text-gray-700 px-8 py-4 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                        >
-                        <FileDown className="h-5 w-5" /> 
-                        {isGeneratingPdf ? "Generando..." : "Descargar Informe PDF"}
-                        </button>
-                    </div>
-                </div>
+                <ContactSection 
+                  houseName={selectedHouse.name}
+                  onDownloadPdf={handleDownloadPDF}
+                  isGeneratingPdf={isGeneratingPdf}
+                />
                 </>
             )}
           </div>
@@ -470,7 +407,6 @@ const App: React.FC = () => {
       </main>
 
       <Footer />
-
       <AdminPanel isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} />
 
     </div>

@@ -11,7 +11,7 @@ const Header: React.FC<HeaderProps> = ({ onOpenAdmin }) => {
 
   const handleShare = () => {
     // Copy the specific deployment URL to clipboard
-    navigator.clipboard.writeText("https://financiacion-huertos-343150085080.us-west1.run.app/");
+    navigator.clipboard.writeText("https://medidas.xn--huertosdelacaada-jub.com/");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

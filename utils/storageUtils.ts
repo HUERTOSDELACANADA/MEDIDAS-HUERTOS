@@ -1,3 +1,4 @@
+
 const DB_NAME = 'HuertosAppDB';
 const STORE_NAME = 'images';
 const DB_VERSION = 1;
@@ -7,6 +8,7 @@ export const STORAGE_KEYS = {
   BAJA: 'blueprint_baja',
   PRIMERA: 'blueprint_primera',
   CUBIERTA: 'blueprint_cubierta',
+  CALIBRATION: 'room_calibration_data' // New key for coordinate data
 };
 
 // Helper to open the database
@@ -84,4 +86,25 @@ export const clearImageFromStorage = async (key: string): Promise<void> => {
   } catch (e) {
       console.error("Error clearing image", e);
   }
+};
+
+// --- Calibration Logic ---
+// We store calibration as a JSON string in the same object store for simplicity, 
+// or we could create a new store. Using the same store with a specific key is easier here.
+
+export const saveCalibration = async (data: any): Promise<void> => {
+    // Serialize to string
+    const jsonString = JSON.stringify(data);
+    await saveImageToStorage(STORAGE_KEYS.CALIBRATION, jsonString);
+};
+
+export const getCalibration = async (): Promise<any> => {
+    const data = await getImageFromStorage(STORAGE_KEYS.CALIBRATION);
+    if (!data) return null;
+    try {
+        return JSON.parse(data);
+    } catch (e) {
+        console.error("Error parsing calibration data", e);
+        return null;
+    }
 };
