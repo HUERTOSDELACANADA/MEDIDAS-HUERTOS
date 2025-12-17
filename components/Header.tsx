@@ -93,17 +93,17 @@ const Header: React.FC<HeaderProps> = ({ onOpenAdmin }) => {
                 href="https://youtu.be/mmd3os4GG8s?si=K3dqhIweRx_2maaP"
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm bg-gray-900 text-white hover:bg-black transition-all duration-300 shadow-md hover:shadow-lg"
+                className="hidden sm:flex items-center justify-center gap-2 px-4 py-2 rounded-full font-medium text-sm bg-gray-900 text-white hover:bg-black transition-all duration-300 shadow-md hover:shadow-lg min-w-[180px]"
              >
                 <PlayCircle className="h-4 w-4" />
-                <span>El arquitecto explica HUERTOS de la Cañada</span>
+                <span>Video Arquitecto</span>
              </a>
 
              <a 
                 href="https://xn--huertosdelacaada-jub.com/" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm bg-[#39b54a] text-white hover:bg-[#2ea03f] transition-all duration-300 shadow-md hover:shadow-lg"
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-full font-medium text-sm bg-[#39b54a] text-white hover:bg-[#2ea03f] transition-all duration-300 shadow-md hover:shadow-lg min-w-[180px]"
              >
                 <MessageCircle className="h-4 w-4" />
                 <span className="hidden md:inline">Quiero más información</span>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FloorPlan } from '../types';
 import { ZoomIn } from 'lucide-react';
@@ -9,8 +8,12 @@ interface FloorDetailProps {
   selectedRooms: string[];
   onToggleRoom: (roomName: string) => void;
   onClearSelection: () => void;
+  onSelectAll: (roomNames: string[]) => void;
   onOpenViewer: () => void;
   showConstructed: boolean; // Controlled from App.tsx
+  setShowConstructed: (value: boolean) => void;
+  onDownloadPdf: () => void;
+  isGeneratingPdf: boolean;
 }
 
 const FloorDetail: React.FC<FloorDetailProps> = ({ 
@@ -18,12 +21,15 @@ const FloorDetail: React.FC<FloorDetailProps> = ({
   selectedRooms, 
   onToggleRoom, 
   onClearSelection, 
+  onSelectAll,
   onOpenViewer,
-  showConstructed
+  showConstructed,
+  setShowConstructed,
+  onDownloadPdf,
+  isGeneratingPdf
 }) => {
   // Use explicit constructed area if available, otherwise estimate with 1.15 coefficient
   const constructedArea = floor.totalConstructedArea || (floor.totalUsefulArea * 1.15);
-  const displayArea = showConstructed ? constructedArea : floor.totalUsefulArea;
 
   return (
     <div className="bg-white rounded-3xl shadow-xl shadow-gray-100/50 border border-gray-200 overflow-hidden flex flex-col transition-all duration-300">
@@ -33,23 +39,31 @@ const FloorDetail: React.FC<FloorDetailProps> = ({
           <h3 className="text-2xl font-black text-gray-900 tracking-tight">{floor.name}</h3>
           <p className="text-gray-400 text-sm font-medium">Distribución y Superficies</p>
         </div>
+        
+        {/* Metric Boxes - Showing ALL metrics side-by-side */}
         <div className="flex flex-wrap gap-3">
-          {/* Static Area Display (Controlled by Panel in App.tsx) */}
-          <div 
-            className="group relative bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm transition-all text-left min-w-[140px]"
-          >
-            <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest transition-colors">
-                {showConstructed ? 'Sup. Construida' : 'Sup. Útil'}
-            </span>
-            <span className="text-xl font-black text-[#39b54a] block mt-0.5">
-                {displayArea.toFixed(2)} m²
+          
+          {/* Box 1: Useful Area (Static) */}
+          <div className="group bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm transition-all text-left min-w-[120px]">
+            <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest">Sup. Útil</span>
+            <span className={`text-xl font-black block mt-0.5 ${!showConstructed ? 'text-[#39b54a]' : 'text-gray-900'}`}>
+                {floor.totalUsefulArea.toFixed(2)} m²
             </span>
           </div>
 
+           {/* Box 2: Constructed Area (Static - NEW) */}
+           <div className="group bg-gray-50 px-5 py-3 rounded-2xl border border-gray-200 shadow-sm transition-all text-left min-w-[120px]">
+            <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest">Sup. Construida</span>
+            <span className={`text-xl font-black block mt-0.5 ${showConstructed ? 'text-[#39b54a]' : 'text-gray-900'}`}>
+                {constructedArea.toFixed(2)} m²
+            </span>
+          </div>
+
+          {/* Box 3: Exterior (Conditional) */}
           {floor.outdoorArea && floor.outdoorArea > 0 && (
-            <div className="bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm min-w-[120px]">
                 <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest">Exterior</span>
-                <span className="text-xl font-black text-[#39b54a]">{floor.outdoorArea} m²</span>
+                <span className="text-xl font-black text-gray-900">{floor.outdoorArea} m²</span>
             </div>
           )}
         </div>
@@ -97,12 +111,6 @@ const FloorDetail: React.FC<FloorDetailProps> = ({
                                      </div>
                                  );
                              }
-                             // Fallback for paths if no marker (legacy support)
-                             if (selectedRooms.includes(room.name) && !room.markerPosition && room.path) {
-                                 // Render SVG overlay as fallback? Or just nothing to force calibration.
-                                 // Let's hide path to force using the dot logic as requested.
-                                 return null; 
-                             }
                              return null;
                          })}
                     </div>
@@ -126,10 +134,14 @@ const FloorDetail: React.FC<FloorDetailProps> = ({
                     selectedRooms={selectedRooms}
                     onToggleRoom={onToggleRoom}
                     onClearSelection={onClearSelection}
+                    onSelectAll={onSelectAll}
                     totalUsefulArea={floor.totalUsefulArea}
                     totalConstructedArea={constructedArea}
                     outdoorArea={floor.outdoorArea}
                     showConstructed={showConstructed}
+                    setShowConstructed={setShowConstructed}
+                    onDownloadPdf={onDownloadPdf}
+                    isGeneratingPdf={isGeneratingPdf}
                  />
               </div>
           </div>

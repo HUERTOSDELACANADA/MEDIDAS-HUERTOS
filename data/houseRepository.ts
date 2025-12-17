@@ -9,6 +9,7 @@ const ROOMS_SOTANO = [
     { name: "Escalera", area: 3.86, constructedArea: 4.41 },
     { name: "Vestíbulo", area: 1.72, constructedArea: 1.97 },
     { name: "Aseo", area: 2.82, constructedArea: 3.22 },
+    { name: "Patio Inglés", area: 2.67, constructedArea: 0 }
 ];
 
 const ROOMS_BAJA = [
@@ -25,8 +26,9 @@ const ROOMS_BAJA = [
         constructedArea: 10.23,
         path: "M 55 40 H 90 V 70 H 55 Z" // Approx Bottom-Right quadrant
     },
-    { name: "Vestíbulo", area: 4.01, constructedArea: 5.11 },
+    // Reordered: Escalera before Vestíbulo per request
     { name: "Escalera", area: 4.39, constructedArea: 5.60 },
+    { name: "Vestíbulo", area: 4.01, constructedArea: 5.11 },
     { name: "Aseo", area: 1.53, constructedArea: 1.95 }
 ];
 
@@ -98,7 +100,7 @@ const createHouse = (index: number): House => {
         // V1, V2
         type = "Esquina";
         totalConstructedAndExt = 257.36;
-        patioLateral = 0;
+        patioLateral = 2.57; // Derived difference for V1/V2
         basePrice = 250000;
     } else if (num >= 3 && num <= 14) {
         // V3 - V14 (Normal)
@@ -122,6 +124,25 @@ const createHouse = (index: number): House => {
 
     // Calculate specific floor outdoor areas
     const totalExtPB = baseExtPB + patioLateral;
+
+    // Create dynamic room lists for BAJA with specific order
+    // Order: Patio Trasero -> Interiors -> Patio Lateral -> Patio Delantero Cubierto -> Patio Delantero Descubierto
+    
+    const currentRoomsBaja = [
+        { name: "Patio Trasero", area: 10.49, constructedArea: 0 },
+        ...ROOMS_BAJA
+    ];
+
+    if (patioLateral > 0 || type === "Esquina") {
+        currentRoomsBaja.push({ name: "Patio Lateral", area: patioLateral, constructedArea: 0 });
+    }
+
+    currentRoomsBaja.push({ name: "Patio Delantero Cubierto", area: 12.98, constructedArea: 0 });
+    currentRoomsBaja.push({ name: "Patio Delantero Descubierto", area: 20.35, constructedArea: 0 });
+
+    // PRIMERA: Add Terraza
+    const currentRoomsPrimera = [...ROOMS_PRIMERA];
+    currentRoomsPrimera.push({ name: "Terraza", area: extP1, constructedArea: 0 });
 
     return {
         id,
@@ -147,7 +168,7 @@ const createHouse = (index: number): House => {
                 totalConstructedArea: 50.41,
                 outdoorArea: parseFloat(totalExtPB.toFixed(2)),
                 imagePlaceholder: DEFAULT_FLOOR_PLANS.BAJA,
-                rooms: [...ROOMS_BAJA]
+                rooms: currentRoomsBaja
             },
             {
                 name: FloorName.PRIMERA,
@@ -155,7 +176,7 @@ const createHouse = (index: number): House => {
                 totalConstructedArea: 55.79,
                 outdoorArea: extP1,
                 imagePlaceholder: DEFAULT_FLOOR_PLANS.PRIMERA,
-                rooms: [...ROOMS_PRIMERA]
+                rooms: currentRoomsPrimera
             },
             {
                 name: FloorName.CUBIERTA,

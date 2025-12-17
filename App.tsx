@@ -76,10 +76,15 @@ const App: React.FC = () => {
     );
   };
 
+  const handleSelectAll = (roomNames: string[]) => {
+      setSelectedRooms(roomNames);
+  };
+
   const handleDownloadPDF = () => {
     setIsGeneratingPdf(true);
     setTimeout(() => {
-        generateHousePDF(selectedHouse, includeIva);
+        // Pass the showConstructedGlobal state to the generator
+        generateHousePDF(selectedHouse, includeIva, showConstructedGlobal);
         setIsGeneratingPdf(false);
     }, 100);
   };
@@ -153,9 +158,13 @@ const App: React.FC = () => {
                       selectedRooms={selectedRooms}
                       onToggleRoom={toggleRoomSelection}
                       onClearSelection={() => setSelectedRooms([])}
+                      onSelectAll={handleSelectAll}
                       totalUsefulArea={activeFloor.totalUsefulArea}
                       outdoorArea={activeFloor.outdoorArea}
                       showConstructed={showConstructedGlobal}
+                      setShowConstructed={setShowConstructedGlobal}
+                      onDownloadPdf={handleDownloadPDF}
+                      isGeneratingPdf={isGeneratingPdf}
                    />
                </div>
             ) : (
@@ -265,7 +274,6 @@ const App: React.FC = () => {
                                             <span className={`text-sm font-bold ${isActive ? 'text-[#39b54a]' : 'text-gray-900'}`}>
                                                 {areaToShow.toFixed(2)} m²
                                             </span>
-                                            {showConstructedGlobal && <span className="text-[8px] uppercase text-gray-400">Const.</span>}
                                         </div>
                                     </button>
                                 </div>
@@ -330,8 +338,12 @@ const App: React.FC = () => {
                            selectedRooms={selectedRooms}
                            onToggleRoom={toggleRoomSelection}
                            onClearSelection={() => setSelectedRooms([])}
+                           onSelectAll={handleSelectAll}
                            onOpenViewer={() => setIsPlanExpanded(true)}
                            showConstructed={showConstructedGlobal}
+                           setShowConstructed={setShowConstructedGlobal}
+                           onDownloadPdf={handleDownloadPDF}
+                           isGeneratingPdf={isGeneratingPdf}
                         />
                     </div>
                 ))}
@@ -351,7 +363,7 @@ const App: React.FC = () => {
                                 : 'bg-gray-50 text-gray-500 border-gray-200'
                             }`}
                         >
-                            {showConstructedGlobal ? 'Const.' : 'Útil'}
+                            {showConstructedGlobal ? 'Construido' : 'Útil'}
                         </button>
                     </div>
 
@@ -394,11 +406,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
                 
-                <ContactSection 
-                  houseName={selectedHouse.name}
-                  onDownloadPdf={handleDownloadPDF}
-                  isGeneratingPdf={isGeneratingPdf}
-                />
+                <ContactSection houseName={selectedHouse.name} />
                 </>
             )}
           </div>

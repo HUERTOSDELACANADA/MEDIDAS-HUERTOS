@@ -1,18 +1,16 @@
 import React from 'react';
-import { Calendar, CheckCircle, FileDown } from 'lucide-react';
+import { Calendar, CheckCircle } from 'lucide-react';
 
 interface ContactSectionProps {
   houseName: string;
-  onDownloadPdf: () => void;
-  isGeneratingPdf: boolean;
 }
 
-const ContactSection: React.FC<ContactSectionProps> = ({ houseName, onDownloadPdf, isGeneratingPdf }) => {
+const ContactSection: React.FC<ContactSectionProps> = ({ houseName }) => {
   return (
     <div className="mt-8 lg:mt-12 p-10 bg-gray-50 rounded-3xl border border-gray-100 text-center">
         <h3 className="text-2xl font-bold mb-4 text-gray-900">¿Te interesa {houseName}?</h3>
         <p className="text-gray-500 mb-8 max-w-lg mx-auto">
-            Agenda una visita o descarga el informe detallado con todas las superficies.
+            Agenda una visita.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-4 flex-wrap">
             <button 
@@ -27,15 +25,6 @@ const ContactSection: React.FC<ContactSectionProps> = ({ houseName, onDownloadPd
             className="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg shadow-gray-900/20 flex items-center justify-center gap-2"
             >
             <CheckCircle className="h-5 w-5" /> Quiero Reservar
-            </button>
-            
-            <button 
-            onClick={onDownloadPdf}
-            disabled={isGeneratingPdf}
-            className="bg-white border border-gray-200 hover:border-gray-400 text-gray-700 px-8 py-4 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-            >
-            <FileDown className="h-5 w-5" /> 
-            {isGeneratingPdf ? "Generando..." : "Descargar Informe PDF"}
             </button>
         </div>
     </div>

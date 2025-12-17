@@ -37,25 +37,28 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ isOpen, imageUrl, altText, on
     };
   }, [isOpen, imageUrl, variant]);
 
-  const handleWheel = (e: React.WheelEvent) => {
-    // Aggressively prevent default page scrolling/zooming when inside the viewer
-    e.preventDefault();
-    e.stopPropagation();
+  // Non-passive wheel listener to prevent page scroll and handle zoom
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !isOpen) return;
 
-    if (e.ctrlKey) {
-        // ZOOM MODE (Ctrl + Wheel)
+    const handleWheel = (e: WheelEvent) => {
+        // Prevent default page scroll
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Zoom logic: Scroll Up (negative deltaY) -> Zoom In
         const delta = e.deltaY > 0 ? -0.2 : 0.2;
-        const newScale = Math.min(Math.max(0.5, scale + delta), 8); 
-        setScale(newScale);
-    } else {
-        // PAN MODE (Wheel only)
-        // Adjust position based on scroll delta
-        setPosition(prev => ({
-            x: prev.x - e.deltaX,
-            y: prev.y - e.deltaY
-        }));
-    }
-  };
+        setScale(prev => Math.min(Math.max(0.5, prev + delta), 8));
+    };
+
+    // Passive: false is required to use preventDefault() on wheel events
+    container.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+        container.removeEventListener('wheel', handleWheel);
+    };
+  }, [isOpen]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -109,7 +112,6 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ isOpen, imageUrl, altText, on
       <div 
         ref={containerRef}
         className="flex-1 w-full h-full overflow-hidden flex items-center justify-center cursor-move active:cursor-grabbing relative"
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -167,16 +169,16 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ isOpen, imageUrl, altText, on
         </button>
       </div>
 
-      {/* Footer / Instructions - Minimal for Embedded */}
+      {/* Footer / Instructions */}
       <div className={`absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur border-t border-white/10 p-2 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-40 ${variant === 'embedded' ? 'opacity-0 group-hover:opacity-100 transition-opacity duration-300' : ''}`}>
           <div className="flex flex-wrap items-center gap-4 sm:gap-8 text-[10px] sm:text-xs font-medium text-gray-400">
              <div className="flex items-center gap-2">
                 <MousePointer2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span>Rueda / Arrastrar: <span className="text-white font-bold">Mover</span></span>
+                <span>Arrastrar: <span className="text-white font-bold">Mover</span></span>
              </div>
              <div className="flex items-center gap-2">
                 <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span>Ctrl + Rueda: <span className="text-white font-bold">Zoom</span></span>
+                <span>Rueda: <span className="text-white font-bold">Zoom</span></span>
              </div>
              <div className="hidden sm:block text-[#39b54a] font-bold ml-auto">
                  {Math.round(scale * 100)}%

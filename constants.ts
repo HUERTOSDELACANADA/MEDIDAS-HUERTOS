@@ -21,7 +21,7 @@ export const PROJECT_INFO = {
 // Image Placeholders acting as "Blueprints"
 export const DEFAULT_FLOOR_PLANS = {
   SOTANO: "https://storage.googleapis.com/huertos-planos/plano_sotano.jpg",
-  BAJA: "https://storage.googleapis.com/huertos-planos/plano_planta_baja.jpg",
+  BAJA: "https://storage.googleapis.com/huertos-planos/PLANO_PLANTA_BAJA_UNIDA.png",
   PRIMERA: "https://storage.googleapis.com/huertos-planos/plano_planta_primera.jpg",
-  CUBIERTA: "https://storage.googleapis.com/huertos-planos/plano_cubierta.jpg"
+  CUBIERTA: "https://storage.googleapis.com/huertos-planos/plano_cubierta_Jacuzzi.png"
 };
