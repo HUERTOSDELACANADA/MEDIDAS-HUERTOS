@@ -10,8 +10,8 @@ const Header: React.FC<HeaderProps> = ({ onOpenAdmin }) => {
   const [showInfo, setShowInfo] = useState(false);
 
   const handleShare = () => {
-    // Copy the specific AI Studio URL to clipboard
-    navigator.clipboard.writeText("https://ai.studio/apps/drive/1KvkfcfLepA-x1acsvz1ALt96cXgx9pzT");
+    // Copy the specific deployment URL to clipboard
+    navigator.clipboard.writeText("https://financiacion-huertos-343150085080.us-west1.run.app/");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

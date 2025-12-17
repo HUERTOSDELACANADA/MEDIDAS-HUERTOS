@@ -10,7 +10,7 @@ import ImageViewer from './components/ImageViewer';
 import RoomList from './components/RoomList';
 import { HOUSES, DEFAULT_FLOOR_PLANS } from './constants';
 import { House, FloorName } from './types';
-import { Home, Calendar, CheckCircle, FileDown, Sun } from 'lucide-react';
+import { Home, Calendar, CheckCircle, FileDown, Sun, Layers } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { STORAGE_KEYS, getImageFromStorage } from './utils/storageUtils';
@@ -346,7 +346,8 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="space-y-3">
+                {/* DESKTOP FLOOR SELECTOR: Hidden on mobile */}
+                <div className="hidden lg:block space-y-3">
                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Plantas</h4>
                     {selectedHouse.floors.map((floor) => (
                     <button
@@ -400,9 +401,38 @@ const App: React.FC = () => {
                         />
                     </div>
                 ))}
+
+                {/* MOBILE FLOOR SELECTOR: Visible only on mobile, below the room list details */}
+                <div className="block lg:hidden mt-6 bg-white p-6 rounded-3xl border border-gray-200 shadow-lg">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <Layers className="h-4 w-4" /> Cambiar Planta
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                        {selectedHouse.floors.map((floor) => (
+                        <button
+                            key={floor.name}
+                            onClick={() => {
+                                setActiveFloorName(floor.name);
+                                // Scroll slightly to bring image into view if needed
+                                detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }}
+                            className={`flex flex-col items-center justify-center p-3 rounded-xl transition-all border text-center ${
+                            activeFloorName === floor.name
+                                ? 'bg-gray-900 text-white border-gray-900 shadow-md'
+                                : 'bg-gray-50 text-gray-600 border-gray-100 hover:border-[#39b54a]'
+                            }`}
+                        >
+                            <span className="font-bold text-xs leading-tight mb-1">{floor.name}</span>
+                            <span className={`text-[10px] ${activeFloorName === floor.name ? 'text-gray-300' : 'text-gray-400'}`}>
+                            {floor.totalUsefulArea} m²
+                            </span>
+                        </button>
+                        ))}
+                    </div>
+                </div>
                 
                 {/* Call to Action */}
-                <div className="mt-12 p-10 bg-gray-50 rounded-3xl border border-gray-100 text-center">
+                <div className="mt-8 lg:mt-12 p-10 bg-gray-50 rounded-3xl border border-gray-100 text-center">
                     <h3 className="text-2xl font-bold mb-4 text-gray-900">¿Te interesa {selectedHouse.name}?</h3>
                     <p className="text-gray-500 mb-8 max-w-lg mx-auto">
                         Agenda una visita o descarga el informe detallado con todas las superficies.
