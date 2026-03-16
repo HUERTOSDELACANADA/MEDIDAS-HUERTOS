@@ -69,10 +69,10 @@ const Header: React.FC<HeaderProps> = ({ onOpenAdmin }) => {
                     <span className="text-[10px] font-semibold leading-none">metros de</span>
                 </div>
                 <img 
-                    src="https://drive.google.com/thumbnail?id=1cJQ9faDsOJtYXDj7SAOT1qfrWQ0r8egw&sz=w200" 
-                    alt="Universidad de Almería" 
-                    className="h-10 w-auto object-contain mix-blend-multiply opacity-90"
-                />
+                  src="https://storage.googleapis.com/huertos-planos/logo-ual.jpg" 
+                  alt="Universidad de Almería" 
+                  className="h-10 w-auto object-contain mix-blend-multiply opacity-90"
+                  />
             </div>
           </div>
           
