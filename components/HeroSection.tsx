@@ -3,12 +3,12 @@ import { MapPin } from 'lucide-react';
 import { PROJECT_INFO } from '../constants';
 
 const HERO_IMAGES = [
-  "https://drive.google.com/thumbnail?id=10fbIrc7gwl66saCjXQArFSL8uiyR5EFu&sz=w2560", // Original
-  "https://drive.google.com/thumbnail?id=1jvAdC-anFwsN5rhkcReZUM-q_TSz86Vg&sz=w2560", // New 1
-  "https://drive.google.com/thumbnail?id=1gwgNPCJEQXZyCfXrbjJ1-t_HYNYVq9ci&sz=w2560", // New 2
-  "https://drive.google.com/thumbnail?id=10R3OMtd_c4mACkg9lL680VlGBxxjwMSx&sz=w2560", // New 3
-  "https://drive.google.com/thumbnail?id=1B659iviiZ5Czt26AakDwHh-cThdy-4YC&sz=w2560", // New 4
-  "https://drive.google.com/thumbnail?id=1zPe3b7mtwPtKEmYVdh4VMqwJYWseqBPd&sz=w2560"  // New 5
+  "https://storage.googleapis.com/huertos-planos/carrusel-1.jpg", 
+  "https://storage.googleapis.com/huertos-planos/carrusel-2.jpg", 
+  "https://storage.googleapis.com/huertos-planos/carrusel-3.jpg", 
+  "https://storage.googleapis.com/huertos-planos/carrusel-4.jpg", 
+  "https://storage.googleapis.com/huertos-planos/carrusel-5.jpg", 
+  "https://storage.googleapis.com/huertos-planos/carrusel-6.jpg"  
 ];
 
 const HeroSection: React.FC = () => {
