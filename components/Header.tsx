@@ -21,45 +21,14 @@ const Header: React.FC<HeaderProps> = ({ onOpenAdmin }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center gap-4">
-            {/* Custom Logo Implementation */}
-            <div className="flex items-center gap-3">
-                <div className="relative h-12 w-12 flex items-center justify-center">
-                    {/* Black House Outline SVG */}
-                    <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-black">
-                        <path 
-                            d="M50 5 L95 40 V95 H5 V40 Z" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="6" 
-                            strokeLinejoin="round"
-                        />
-                         {/* Roof Inner Line details from logo */}
-                         <path d="M25 40 H75" stroke="currentColor" strokeWidth="0" /> 
-                    </svg>
-                    
-                    {/* Green H SVG */}
-                    <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#39b54a]" style={{ zIndex: 1 }}>
-                        {/* A stylized H that breaks the house line slightly */}
-                        <path 
-                            d="M32 25 V95 M68 25 V95 M32 60 H68" 
-                            stroke="currentColor" 
-                            strokeWidth="12" 
-                            strokeLinecap="square"
-                        />
-                    </svg>
-                </div>
-
-                <div className="flex flex-col justify-center h-full pt-1">
-                    <span className="text-[10px] tracking-[0.2em] font-medium text-gray-500 leading-none">
-                        RESIDENCIAL
-                    </span>
-                    <span className="text-2xl font-black text-[#39b54a] tracking-wide leading-none my-0.5" style={{ fontFamily: 'Arial, sans-serif' }}>
-                        HUERTOS
-                    </span>
-                    <span className="text-[10px] tracking-[0.2em] font-medium text-gray-800 leading-none">
-                        DE LA CAÑADA
-                    </span>
-                </div>
+            
+            {/* Imagen del logo cargada desde el bucket */}
+            <div className="flex items-center">
+                <img 
+                    src="https://storage.googleapis.com/huertos-planos/HUERTOS%20LOGO.jpg" 
+                    alt="Residencial Huertos de la Cañada" 
+                    className="h-12 md:h-16 w-auto object-contain rounded-lg"
+                />
             </div>
 
             {/* University Link Section */}
@@ -69,10 +38,10 @@ const Header: React.FC<HeaderProps> = ({ onOpenAdmin }) => {
                     <span className="text-[10px] font-semibold leading-none">metros de</span>
                 </div>
                 <img 
-                  src="https://storage.googleapis.com/huertos-planos/logo-ual.jpg" 
-                  alt="Universidad de Almería" 
-                  className="h-10 w-auto object-contain mix-blend-multiply opacity-90"
-                  />
+                    src="https://storage.googleapis.com/huertos-planos/logo-ual.jpg" 
+                    alt="Universidad de Almería" 
+                    className="h-10 w-auto object-contain mix-blend-multiply opacity-90"
+                />
             </div>
           </div>
           
